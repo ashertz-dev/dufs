@@ -18,21 +18,21 @@ pub fn build_cli() -> Command {
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(concat!(
-            env!("CARGO_PKG_DESCRIPTION"),
-            " - ",
-            env!("CARGO_PKG_REPOSITORY")
+        env!("CARGO_PKG_DESCRIPTION"),
+        " - ",
+        env!("CARGO_PKG_REPOSITORY")
         ))
         .arg(
             Arg::new("serve-path")
                 .env("DUFS_SERVE_PATH")
-				.hide_env(true)
+                .hide_env(true)
                 .value_parser(value_parser!(PathBuf))
                 .help("Specific path to serve [default: .]"),
         )
         .arg(
             Arg::new("config")
                 .env("DUFS_CONFIG")
-				.hide_env(true)
+                .hide_env(true)
                 .short('c')
                 .long("config")
                 .value_parser(value_parser!(PathBuf))
@@ -42,7 +42,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("bind")
                 .env("DUFS_BIND")
-				.hide_env(true)
+                .hide_env(true)
                 .short('b')
                 .long("bind")
                 .help("Specify bind address or unix socket")
@@ -53,7 +53,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("port")
                 .env("DUFS_PORT")
-				.hide_env(true)
+                .hide_env(true)
                 .short('p')
                 .long("port")
                 .value_parser(value_parser!(u16))
@@ -63,7 +63,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("path-prefix")
                 .env("DUFS_PATH_PREFIX")
-				.hide_env(true)
+                .hide_env(true)
                 .long("path-prefix")
                 .value_name("path")
                 .help("Specify a path prefix"),
@@ -71,7 +71,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("hidden")
                 .env("DUFS_HIDDEN")
-				.hide_env(true)
+                .hide_env(true)
                 .long("hidden")
                 .action(ArgAction::Append)
                 .value_delimiter(',')
@@ -81,7 +81,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("auth")
                 .env("DUFS_AUTH")
-				.hide_env(true)
+                .hide_env(true)
                 .short('a')
                 .long("auth")
                 .help("Add auth roles, e.g. user:pass@/dir1:rw,/dir2")
@@ -92,7 +92,7 @@ pub fn build_cli() -> Command {
             Arg::new("auth-method")
                 .hide(true)
                 .env("DUFS_AUTH_METHOD")
-				.hide_env(true)
+                .hide_env(true)
                 .long("auth-method")
                 .help("Select auth method")
                 .value_parser(PossibleValuesParser::new(["basic", "digest"]))
@@ -102,7 +102,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("allow-all")
                 .env("DUFS_ALLOW_ALL")
-				.hide_env(true)
+                .hide_env(true)
                 .short('A')
                 .long("allow-all")
                 .action(ArgAction::SetTrue)
@@ -111,7 +111,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("allow-upload")
                 .env("DUFS_ALLOW_UPLOAD")
-				.hide_env(true)
+                .hide_env(true)
                 .long("allow-upload")
                 .action(ArgAction::SetTrue)
                 .help("Allow upload files/folders"),
@@ -119,7 +119,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("allow-delete")
                 .env("DUFS_ALLOW_DELETE")
-				.hide_env(true)
+                .hide_env(true)
                 .long("allow-delete")
                 .action(ArgAction::SetTrue)
                 .help("Allow delete files/folders"),
@@ -127,7 +127,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("allow-search")
                 .env("DUFS_ALLOW_SEARCH")
-				.hide_env(true)
+                .hide_env(true)
                 .long("allow-search")
                 .action(ArgAction::SetTrue)
                 .help("Allow search files/folders"),
@@ -135,7 +135,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("allow-symlink")
                 .env("DUFS_ALLOW_SYMLINK")
-				.hide_env(true)
+                .hide_env(true)
                 .long("allow-symlink")
                 .action(ArgAction::SetTrue)
                 .help("Allow symlink to files/folders outside root directory"),
@@ -143,23 +143,25 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("allow-archive")
                 .env("DUFS_ALLOW_ARCHIVE")
-				.hide_env(true)
+                .hide_env(true)
                 .long("allow-archive")
                 .action(ArgAction::SetTrue)
                 .help("Allow zip archive generation"),
         )
         .arg(
-            Arg::new("enable-cors")
-                .env("DUFS_ENABLE_CORS")
-				.hide_env(true)
-                .long("enable-cors")
-                .action(ArgAction::SetTrue)
-                .help("Enable CORS, sets `Access-Control-Allow-Origin: *`"),
+            Arg::new("allow-origin")
+                .env("DUFS_ALLOW_ORIGIN")
+                .hide_env(true)
+                .long("allow-origin")
+                .help("Set the `Access-Control-Allow-Origin` header")
+                .action(ArgAction::Append)
+                .value_delimiter(',')
+                .value_name("origin"),
         )
         .arg(
             Arg::new("render-index")
                 .env("DUFS_RENDER_INDEX")
-				.hide_env(true)
+                .hide_env(true)
                 .long("render-index")
                 .action(ArgAction::SetTrue)
                 .help("Serve index.html when requesting a directory, returns 404 if not found index.html"),
@@ -167,7 +169,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("render-try-index")
                 .env("DUFS_RENDER_TRY_INDEX")
-				.hide_env(true)
+                .hide_env(true)
                 .long("render-try-index")
                 .action(ArgAction::SetTrue)
                 .help("Serve index.html when requesting a directory, returns directory listing if not found index.html"),
@@ -175,7 +177,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("render-spa")
                 .env("DUFS_RENDER_SPA")
-				.hide_env(true)
+                .hide_env(true)
                 .long("render-spa")
                 .action(ArgAction::SetTrue)
                 .help("Serve SPA(Single Page Application)"),
@@ -183,7 +185,7 @@ pub fn build_cli() -> Command {
         .arg(
             Arg::new("assets")
                 .env("DUFS_ASSETS")
-				.hide_env(true)
+                .hide_env(true)
                 .long("assets")
                 .help("Set the path to the assets directory for overriding the built-in assets")
                 .value_parser(value_parser!(PathBuf))
@@ -284,7 +286,8 @@ pub struct Args {
     pub render_index: bool,
     pub render_spa: bool,
     pub render_try_index: bool,
-    pub enable_cors: bool,
+    #[serde(deserialize_with = "deserialize_string_or_vec")]
+    pub allow_origins: Vec<String>,
     pub assets: Option<PathBuf>,
     #[serde(deserialize_with = "deserialize_log_http")]
     #[serde(rename = "log-format")]
@@ -348,8 +351,11 @@ impl Args {
                 .collect();
         }
 
-        if !args.enable_cors {
-            args.enable_cors = matches.get_flag("enable-cors");
+        // if !args.enable_cors {
+        //     args.enable_cors = matches.get_flag("enable-cors");
+        // }
+        if let Some(allow_origins) = matches.get_many::<String>("allow-origin") {
+            args.allow_origins = allow_origins.cloned().collect();
         }
 
         if let Some(rules) = matches.get_many::<String>("auth") {
@@ -741,7 +747,7 @@ hidden:
             args.addrs,
             vec![
                 BindAddr::Address("127.0.0.1".parse().unwrap()),
-                BindAddr::Address("192.168.8.10".parse().unwrap())
+                BindAddr::Address("192.168.8.10".parse().unwrap()),
             ]
         );
         assert_eq!(args.hidden, ["tmp", "*.log", "*.lock"]);

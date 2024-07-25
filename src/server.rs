@@ -107,7 +107,8 @@ impl Server {
     ) -> Result<Response, hyper::Error> {
         let uri = req.uri().clone();
         let assets_prefix = &self.assets_prefix;
-        let enable_cors = self.args.enable_cors;
+        let allow_origins = &self.args.allow_origins;
+        let headers = req.headers().clone();
         let is_microsoft_webdav = req
             .headers()
             .get("user-agent")
@@ -144,8 +145,11 @@ impl Server {
             res.headers_mut()
                 .insert(CONNECTION, HeaderValue::from_static("close"));
         }
-        if enable_cors {
-            add_cors(&mut res);
+
+        if let Some(origin_domain) = headers.get("Origin") {
+            if allow_origins.contains(&String::from(origin_domain.to_str().unwrap())) {
+                add_cors(&mut res, origin_domain);
+            }
         }
         Ok(res)
     }
@@ -171,8 +175,8 @@ impl Server {
 
         if method == Method::GET
             && self
-                .handle_assets(&relative_path, headers, &mut res)
-                .await?
+            .handle_assets(&relative_path, headers, &mut res)
+            .await?
         {
             return Ok(res);
         }
@@ -267,7 +271,7 @@ impl Server {
                                 access_paths,
                                 &mut res,
                             )
-                            .await?;
+                                .await?;
                         } else {
                             self.handle_render_index(
                                 path,
@@ -278,7 +282,7 @@ impl Server {
                                 access_paths,
                                 &mut res,
                             )
-                            .await?;
+                                .await?;
                         }
                     } else if render_index || render_spa {
                         self.handle_render_index(
@@ -290,7 +294,7 @@ impl Server {
                             access_paths,
                             &mut res,
                         )
-                        .await?;
+                            .await?;
                     } else if query_params.contains_key("zip") {
                         if !allow_archive {
                             status_not_found(&mut res);
@@ -307,7 +311,7 @@ impl Server {
                             access_paths,
                             &mut res,
                         )
-                        .await?;
+                            .await?;
                     } else {
                         self.handle_ls_dir(
                             path,
@@ -318,7 +322,7 @@ impl Server {
                             access_paths,
                             &mut res,
                         )
-                        .await?;
+                            .await?;
                     }
                 } else if is_file {
                     if query_params.contains_key("edit") {
@@ -346,7 +350,7 @@ impl Server {
                         access_paths,
                         &mut res,
                     )
-                    .await?;
+                        .await?;
                 } else {
                     status_not_found(&mut res);
                 }
@@ -621,7 +625,7 @@ impl Server {
                 }
                 paths
             })
-            .await?;
+                .await?;
             for search_path in search_paths.into_iter() {
                 if let Ok(Some(item)) = self.to_pathitem(search_path, path.to_path_buf()).await {
                     paths.push(item);
@@ -668,7 +672,7 @@ impl Server {
                 compression,
                 running,
             )
-            .await
+                .await
             {
                 error!("Failed to zip {}, {}", path.display(), e);
             }
@@ -1547,11 +1551,13 @@ async fn ensure_path_parent(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn add_cors(res: &mut Response) {
-    res.headers_mut()
-        .typed_insert(AccessControlAllowOrigin::ANY);
+fn add_cors(res: &mut Response, allow_origin: &HeaderValue) {
     res.headers_mut()
         .typed_insert(AccessControlAllowCredentials);
+    res.headers_mut().insert(
+        "Access-Control-Allow-Origin",
+        allow_origin.clone(),
+    );
     res.headers_mut().insert(
         "Access-Control-Allow-Methods",
         HeaderValue::from_static("*"),
@@ -1631,7 +1637,7 @@ async fn zip_dir<W: AsyncWrite + Unpin>(
         }
         paths
     })
-    .await?;
+        .await?;
     for zip_path in zip_paths.into_iter() {
         let filename = match zip_path.strip_prefix(dir).ok().and_then(|v| v.to_str()) {
             Some(v) => v,
@@ -1693,7 +1699,7 @@ fn set_content_disposition(res: &mut Response, inline: bool, filename: &str) -> 
         })
         .collect();
     let value = if filename.is_ascii() {
-        HeaderValue::from_str(&format!("{kind}; filename=\"{}\"", filename,))?
+        HeaderValue::from_str(&format!("{kind}; filename=\"{}\"", filename, ))?
     } else {
         HeaderValue::from_str(&format!(
             "{kind}; filename=\"{}\"; filename*=UTF-8''{}",
