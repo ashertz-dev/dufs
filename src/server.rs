@@ -141,16 +141,16 @@ impl Server {
             }
         };
 
-        if let Some(origin_domain) = headers.get("Origin") {
-            if allow_origins.contains(&String::from(origin_domain.to_str().unwrap())) {
-                add_cors(&mut res, origin_domain);
-            }
-        }
-
         if is_microsoft_webdav {
             // microsoft webdav requires this.
             res.headers_mut()
                 .insert(CONNECTION, HeaderValue::from_static("close"));
+        }
+
+        if let Some(origin_domain) = headers.get("Origin") {
+            if allow_origins.contains(&String::from(origin_domain.to_str().unwrap())) {
+                add_cors(&mut res, origin_domain);
+            }
         }
 
         Ok(res)
