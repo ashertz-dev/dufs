@@ -15,9 +15,9 @@ use bytes::Bytes;
 use chrono::{LocalResult, TimeZone, Utc};
 use futures_util::{pin_mut, TryStreamExt};
 use headers::{
-    AcceptRanges, AccessControlAllowCredentials, AccessControlAllowOrigin, CacheControl,
-    ContentLength, ContentType, ETag, HeaderMap, HeaderMapExt, IfMatch, IfModifiedSince,
-    IfNoneMatch, IfRange, IfUnmodifiedSince, LastModified, Range,
+    AcceptRanges, AccessControlAllowCredentials, CacheControl, ContentLength, ContentType, ETag,
+    HeaderMap, HeaderMapExt, IfMatch, IfModifiedSince, IfNoneMatch, IfRange, IfUnmodifiedSince,
+    LastModified, Range,
 };
 use http_body_util::{combinators::BoxBody, BodyExt, StreamBody};
 use hyper::body::Frame;
@@ -132,6 +132,7 @@ impl Server {
                 let mut res = Response::default();
                 let status = StatusCode::INTERNAL_SERVER_ERROR;
                 *res.status_mut() = status;
+                *res.body_mut() = body_full(err.to_string());
                 http_log_data.insert("status".to_string(), status.as_u16().to_string());
                 self.args
                     .http_logger
@@ -140,17 +141,18 @@ impl Server {
             }
         };
 
+        if let Some(origin_domain) = headers.get("Origin") {
+            if allow_origins.contains(&String::from(origin_domain.to_str().unwrap())) {
+                add_cors(&mut res, origin_domain);
+            }
+        }
+
         if is_microsoft_webdav {
             // microsoft webdav requires this.
             res.headers_mut()
                 .insert(CONNECTION, HeaderValue::from_static("close"));
         }
 
-        if let Some(origin_domain) = headers.get("Origin") {
-            if allow_origins.contains(&String::from(origin_domain.to_str().unwrap())) {
-                add_cors(&mut res, origin_domain);
-            }
-        }
         Ok(res)
     }
 
@@ -175,8 +177,8 @@ impl Server {
 
         if method == Method::GET
             && self
-            .handle_assets(&relative_path, headers, &mut res)
-            .await?
+                .handle_assets(&relative_path, headers, &mut res)
+                .await?
         {
             return Ok(res);
         }
@@ -271,7 +273,7 @@ impl Server {
                                 access_paths,
                                 &mut res,
                             )
-                                .await?;
+                            .await?;
                         } else {
                             self.handle_render_index(
                                 path,
@@ -282,7 +284,7 @@ impl Server {
                                 access_paths,
                                 &mut res,
                             )
-                                .await?;
+                            .await?;
                         }
                     } else if render_index || render_spa {
                         self.handle_render_index(
@@ -294,7 +296,7 @@ impl Server {
                             access_paths,
                             &mut res,
                         )
-                            .await?;
+                        .await?;
                     } else if query_params.contains_key("zip") {
                         if !allow_archive {
                             status_not_found(&mut res);
@@ -311,7 +313,7 @@ impl Server {
                             access_paths,
                             &mut res,
                         )
-                            .await?;
+                        .await?;
                     } else {
                         self.handle_ls_dir(
                             path,
@@ -322,7 +324,7 @@ impl Server {
                             access_paths,
                             &mut res,
                         )
-                            .await?;
+                        .await?;
                     }
                 } else if is_file {
                     if query_params.contains_key("edit") {
@@ -350,7 +352,7 @@ impl Server {
                         access_paths,
                         &mut res,
                     )
-                        .await?;
+                    .await?;
                 } else {
                     status_not_found(&mut res);
                 }
@@ -625,7 +627,7 @@ impl Server {
                 }
                 paths
             })
-                .await?;
+            .await?;
             for search_path in search_paths.into_iter() {
                 if let Ok(Some(item)) = self.to_pathitem(search_path, path.to_path_buf()).await {
                     paths.push(item);
@@ -672,7 +674,7 @@ impl Server {
                 compression,
                 running,
             )
-                .await
+            .await
             {
                 error!("Failed to zip {}, {}", path.display(), e);
             }
@@ -1554,10 +1556,8 @@ async fn ensure_path_parent(path: &Path) -> Result<()> {
 fn add_cors(res: &mut Response, allow_origin: &HeaderValue) {
     res.headers_mut()
         .typed_insert(AccessControlAllowCredentials);
-    res.headers_mut().insert(
-        "Access-Control-Allow-Origin",
-        allow_origin.clone(),
-    );
+    res.headers_mut()
+        .insert("Access-Control-Allow-Origin", allow_origin.clone());
     res.headers_mut().insert(
         "Access-Control-Allow-Methods",
         HeaderValue::from_static("*"),
@@ -1637,7 +1637,7 @@ async fn zip_dir<W: AsyncWrite + Unpin>(
         }
         paths
     })
-        .await?;
+    .await?;
     for zip_path in zip_paths.into_iter() {
         let filename = match zip_path.strip_prefix(dir).ok().and_then(|v| v.to_str()) {
             Some(v) => v,
@@ -1699,7 +1699,7 @@ fn set_content_disposition(res: &mut Response, inline: bool, filename: &str) -> 
         })
         .collect();
     let value = if filename.is_ascii() {
-        HeaderValue::from_str(&format!("{kind}; filename=\"{}\"", filename, ))?
+        HeaderValue::from_str(&format!("{kind}; filename=\"{}\"", filename,))?
     } else {
         HeaderValue::from_str(&format!(
             "{kind}; filename=\"{}\"; filename*=UTF-8''{}",
